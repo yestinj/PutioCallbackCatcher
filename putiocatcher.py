@@ -24,8 +24,14 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         print(repr(fields))
         print("<----- Request End -----\n")
         self.send_response(200)
+
+        download_name = fields.get('name')      
+
         if config_map.get('execute_command'):
-            os.system(config_map['execute_command'])
+	    command = config_map['execute_command']
+	    command = str(command).replace('%NAME%', download_name[0])
+	    print('Executing {}'.format(command))
+            os.system(command)
 
 
 def ConfigSectionMap(config, section):
