@@ -2,6 +2,7 @@ import time
 import BaseHTTPServer
 from urlparse import urlparse, parse_qs
 import ConfigParser
+import os
 
 config_map = dict()
 
@@ -22,8 +23,9 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # print(field_data)
         print(repr(fields))
         print("<----- Request End -----\n")
-
         self.send_response(200)
+        if config_map.get('execute_command'):
+            os.system(config_map['execute_command'])
 
 
 def ConfigSectionMap(config, section):
@@ -58,6 +60,12 @@ def parse_config(cfg_file_path='pcc.config'):
         else:
             config_map['port'] = 9001
         print('cfg: Set port number to {}'.format(config_map['port']))
+
+    if 'Execute' in config.sections():
+        execution = ConfigSectionMap(config, 'Execute')
+        command = execution['command']
+        config_map['execute_command'] = command
+        #print('cfg: Got command to execute: {}'.format(command))
 
 
 if __name__ == '__main__':
