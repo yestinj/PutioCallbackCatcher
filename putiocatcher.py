@@ -34,8 +34,8 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             print('Executing {}'.format(command))
             os.system(command)
 
-        file_id = fields.get('id)')
-        download_file(file_id)
+        file_id = fields.get('file_id')
+        download_file(file_id[0])
 
 
 def ConfigSectionMap(config, section):
