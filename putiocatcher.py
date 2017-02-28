@@ -3,6 +3,7 @@ import BaseHTTPServer
 from urlparse import urlparse, parse_qs
 import ConfigParser
 import os
+import putiopy
 
 config_map = dict()
 
@@ -25,13 +26,16 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         print("<----- Request End -----\n")
         self.send_response(200)
 
-        download_name = fields.get('name')      
+        download_name = fields.get('name')
 
         if config_map.get('execute_command'):
-	    command = config_map['execute_command']
-	    command = str(command).replace('%NAME%', download_name[0])
-	    print('Executing {}'.format(command))
+            command = config_map['execute_command']
+            command = str(command).replace('%NAME%', download_name[0])
+            print('Executing {}'.format(command))
             os.system(command)
+
+        file_id = fields.get('id)')
+        download_file(file_id)
 
 
 def ConfigSectionMap(config, section):
@@ -41,7 +45,7 @@ def ConfigSectionMap(config, section):
         try:
             dict1[option] = config.get(section, option)
             if dict1[option] == -1:
-                DebugPrint("skip: %s" % option)
+                print("skip: %s" % option)
         except:
             print("exception on %s!" % option)
             dict1[option] = None
@@ -71,11 +75,26 @@ def parse_config(cfg_file_path='pcc.config'):
         execution = ConfigSectionMap(config, 'Execute')
         command = execution['command']
         config_map['execute_command'] = command
-        #print('cfg: Got command to execute: {}'.format(command))
+        # print('cfg: Got command to execute: {}'.format(command))
+
+    if 'PutioCreds' in config.sections():
+        putio_creds = ConfigSectionMap(config, 'PutioCreds')
+        oauth = putio_creds['oauthtoken']
+        config_map['oauth'] = oauth
+
+
+def download_file(id, delete_after_download=True):
+    putio_client = putiopy.Client(config_map['oauth'])
+    file = putio_client.File.get(int(id))
+    print('Downloading file: {}'.format(str(file)))
+    file.download(dest="./Downloads/", delete_after_download=delete_after_download)
+    print('Download complete!')
 
 
 if __name__ == '__main__':
+
     parse_config()
+
     server_class = BaseHTTPServer.HTTPServer
     httpd = server_class((config_map['host'], config_map['port']), MyHandler)
     print time.asctime(), "Server Starts - %s:%s" % (config_map['host'], config_map['port'])
