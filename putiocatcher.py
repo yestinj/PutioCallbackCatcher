@@ -19,7 +19,6 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         length = int(content_length[0]) if content_length else 0
         field_data = self.rfile.read(length)
         fields = parse_qs(field_data)
-
         # print(request_headers)
         # print(field_data)
         print(repr(fields))
@@ -28,15 +27,37 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         download_name = fields.get('name')
 
-        if config_map.get('execute_command'):
-            command = config_map['execute_command']
+        if config_map.get('notify_command'):
+            command = config_map['notify_command']
             command = str(command).replace('%NAME%', download_name[0])
-            print('Executing {}'.format(command))
+            print('Sending notification of new download "{}"'.format(download_name[0]))
             os.system(command)
 
         file_id = fields.get('file_id')
         download_file(file_id[0])
 
+        if config_map.get('complete_notify_command'):
+            command = config_map['complet_notify_command']
+            command = str(command).replace('%NAME%', download_name[0])
+            print('Sending notification of completed download "{}"'.format(download_name[0]))
+            os.system(command)
+
+        if config_map.get('archive_command'):
+            command = config_map['archive_command']
+            command = str(command).replace('%NAME%', download_name[0])
+            print('Archiving complete download "{}"'.format(command))
+            exit = os.system(command)
+	    print('Archiving complete, exit code {}'.format(exit))
+
+	if exit == 0:
+            if config_map.get('remove_command'):
+                command = config_map['remove_command']
+                command = str(command).replace('%NAME%', download_name[0])
+                print('Removing old files "{}"'.format(command))
+                exit = os.system(command)
+	else:
+	    print('Error during archive process, aborting')
+	
 
 def ConfigSectionMap(config, section):
     dict1 = {}
@@ -73,9 +94,12 @@ def parse_config(cfg_file_path='pcc.config'):
 
     if 'Execute' in config.sections():
         execution = ConfigSectionMap(config, 'Execute')
-        command = execution['command']
-        config_map['execute_command'] = command
+        command = execution['notifycommand']
+        config_map['notify_command'] = command
         # print('cfg: Got command to execute: {}'.format(command))
+	config_map['complete_notify_command'] = execution['notifycompletecommand']
+	config_map['archive_command'] = execution['archivecommand']
+	config_map['remove_command'] = execution['removecommand']
 
     if 'PutioCreds' in config.sections():
         putio_creds = ConfigSectionMap(config, 'PutioCreds')
