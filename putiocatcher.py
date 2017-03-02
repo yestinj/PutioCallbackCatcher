@@ -42,22 +42,33 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             print('Sending notification of completed download "{}"'.format(download_name[0]))
             os.system(command)
 
+        if config_map.get('archive_dir'):
+            archive_dir = config_map.get('archive_dir')
+            if not os.path.exists(archive_dir):
+                print('Creating directory for achives - {}'.format(archive_dir))
+                os.makedirs(archive_dir)
+
+        exit = 0
         if config_map.get('archive_command'):
             command = config_map['archive_command']
             command = str(command).replace('%NAME%', download_name[0])
             print('Archiving complete download "{}"'.format(command))
             exit = os.system(command)
-	    print('Archiving complete, exit code {}'.format(exit))
+            print('Archiving complete, exit code {}'.format(exit))
 
-	if exit == 0:
-            if config_map.get('remove_command'):
-                command = config_map['remove_command']
-                command = str(command).replace('%NAME%', download_name[0])
-                print('Removing old files "{}"'.format(command))
-                exit = os.system(command)
-	else:
-	    print('Error during archive process, aborting')
-	
+            if exit == 0:
+                if config_map.get('remove_command'):
+                    command = config_map['remove_command']
+                    command = str(command).replace('%NAME%', download_name[0])
+                    print('Removing old files "{}"'.format(command))
+                    exit = os.system(command)
+                    if exit == 0:
+                        print('Removing completed successfully')
+                    else:
+                        print('Error during the removal process!')
+            else:
+                print('Error during archive process, aborting')
+
 
 def ConfigSectionMap(config, section):
     dict1 = {}
@@ -92,14 +103,20 @@ def parse_config(cfg_file_path='pcc.config'):
             config_map['port'] = 9001
         print('cfg: Set port number to {}'.format(config_map['port']))
 
+        archive_dir = ws_options['archivedir']
+        if archive_dir:
+            config_map['archive_dir'] = archive_dir
+        else:
+            config_map['archive_dir'] = './Complete'
+
     if 'Execute' in config.sections():
         execution = ConfigSectionMap(config, 'Execute')
         command = execution['notifycommand']
         config_map['notify_command'] = command
         # print('cfg: Got command to execute: {}'.format(command))
-	config_map['complete_notify_command'] = execution['notifycompletecommand']
-	config_map['archive_command'] = execution['archivecommand']
-	config_map['remove_command'] = execution['removecommand']
+        config_map['complete_notify_command'] = execution['notifycompletecommand']
+        config_map['archive_command'] = execution['archivecommand']
+        config_map['remove_command'] = execution['removecommand']
 
     if 'PutioCreds' in config.sections():
         putio_creds = ConfigSectionMap(config, 'PutioCreds')
