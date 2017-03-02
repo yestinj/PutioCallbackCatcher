@@ -1,3 +1,7 @@
+*.pid
+Downloads/
+Complete/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
