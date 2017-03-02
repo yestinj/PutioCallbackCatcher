@@ -4,6 +4,7 @@ from urlparse import urlparse, parse_qs
 import ConfigParser
 import os
 import putiopy
+import shutil
 
 config_map = dict()
 
@@ -43,6 +44,19 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 print('Creating directory for achives - {}'.format(archive_dir))
                 os.makedirs(archive_dir)
 
+	# If it's a file it's likely compressed, no point redoing it, just move.
+	if os.path.isfile(os.path.join(download_dir, download_name)):
+	    print('File detected, skipping archive, moving to {}'.format(archive_dir))
+	    if os.path.exists(os.path.join(archive_dir, download_name)):
+		print('Error: Existing file in archive directory, aborting and not removing downloaded file!')
+		send_push_notification('File exists error', 'Existing file in archive directory, aborting - {}'.format(download_name))
+	    else:
+	        shutil.move(os.path.join(download_dir, download_name), os.path.join(archive_dir, download_name))
+		print('{} moved to {} successfully!'.format(download_name, archive_dir))
+		send_push_notification('Process complete', 'Single file download and archive process complete for {}'.format(download_name))
+	    return
+	
+	# It must be a directory going forward..
         exit = 0
         if config_map.get('archive_command'):
             command = config_map['archive_command']
@@ -147,8 +161,19 @@ def download_file(id, delete_after_download=True, download_dir="./"):
     print('Download complete!')
 
 
+def write_pid_file():
+    pid = str(os.getpid())
+    f = open('putiocatcher.pid', 'w')
+    f.write(pid)
+    f.close()
+    return pid
+
+
 if __name__ == '__main__':
 
+    print('Putio Callback Catcher starting up...')
+    pid = write_pid_file()
+    print('PID: {}'.format(pid))	    
     parse_config()
 
     server_class = BaseHTTPServer.HTTPServer
