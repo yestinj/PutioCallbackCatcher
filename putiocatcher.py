@@ -33,11 +33,14 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             print('Sending notification of new download "{}"'.format(download_name[0]))
             os.system(command)
 
+	if config_map.get('download_dir'):
+	    download_dir = config_map['download_dir']
+
         file_id = fields.get('file_id')
-        download_file(file_id[0])
+        download_file(file_id[0], download_dir=download_dir)
 
         if config_map.get('complete_notify_command'):
-            command = config_map['complet_notify_command']
+            command = config_map['complete_notify_command']
             command = str(command).replace('%NAME%', download_name[0])
             print('Sending notification of completed download "{}"'.format(download_name[0]))
             os.system(command)
@@ -51,7 +54,9 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         exit = 0
         if config_map.get('archive_command'):
             command = config_map['archive_command']
-            command = str(command).replace('%NAME%', download_name[0])
+	    command = command.replace('%DOWNLOAD_DIR%', download_dir)
+            command = command.replace('%ARCHIVE_DIR%', archive_dir)
+            command = command.replace('%NAME%', download_name[0])
             print('Archiving complete download "{}"'.format(command))
             exit = os.system(command)
             print('Archiving complete, exit code {}'.format(exit))
@@ -59,7 +64,8 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if exit == 0:
                 if config_map.get('remove_command'):
                     command = config_map['remove_command']
-                    command = str(command).replace('%NAME%', download_name[0])
+                    command = command.replace('%DOWNLOAD_DIR%', download_dir)
+		    command = command.replace('%NAME%', download_name[0])
                     print('Removing old files "{}"'.format(command))
                     exit = os.system(command)
                     if exit == 0:
@@ -109,6 +115,12 @@ def parse_config(cfg_file_path='pcc.config'):
         else:
             config_map['archive_dir'] = './Complete'
 
+        download_dir = ws_options['downloaddir']
+        if download_dir:
+            config_map['download_dir'] = download_dir
+        else:
+            config_map['download_dir'] = './Downloads'
+
     if 'Execute' in config.sections():
         execution = ConfigSectionMap(config, 'Execute')
         command = execution['notifycommand']
@@ -124,11 +136,11 @@ def parse_config(cfg_file_path='pcc.config'):
         config_map['oauth'] = oauth
 
 
-def download_file(id, delete_after_download=True):
+def download_file(id, delete_after_download=True, download_dir="./"):
     putio_client = putiopy.Client(config_map['oauth'])
     file = putio_client.File.get(int(id))
     print('Downloading file: {}'.format(str(file)))
-    file.download(dest="./Downloads/", delete_after_download=delete_after_download)
+    file.download(dest=download_dir, delete_after_download=delete_after_download)
     print('Download complete!')
 
 
