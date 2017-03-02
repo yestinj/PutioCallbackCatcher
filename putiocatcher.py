@@ -13,7 +13,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST(self):
         request_path = self.path
         print("\n----- Request Start ----->\n")
-        print(request_path)
+        #print(request_path)
         request_headers = self.headers
         content_length = request_headers.getheaders('content-length')
         length = int(content_length[0]) if content_length else 0
@@ -25,13 +25,9 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         print("<----- Request End -----\n")
         self.send_response(200)
 
-        download_name = fields.get('name')
+        download_name = fields.get('name')[0]
 
-        if config_map.get('notify_command'):
-            command = config_map['notify_command']
-            command = str(command).replace('%NAME%', download_name[0])
-            print('Sending notification of new download "{}"'.format(download_name[0]))
-            os.system(command)
+	send_push_notification('Put.io notification', 'Download complete callback received for {}'.format(download_name))
 
 	if config_map.get('download_dir'):
 	    download_dir = config_map['download_dir']
@@ -39,11 +35,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         file_id = fields.get('file_id')
         download_file(file_id[0], download_dir=download_dir)
 
-        if config_map.get('complete_notify_command'):
-            command = config_map['complete_notify_command']
-            command = str(command).replace('%NAME%', download_name[0])
-            print('Sending notification of completed download "{}"'.format(download_name[0]))
-            os.system(command)
+	send_push_notification('Download complete', 'Successfully downloaded {} to server'.format(download_name))
 
         if config_map.get('archive_dir'):
             archive_dir = config_map.get('archive_dir')
@@ -56,7 +48,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             command = config_map['archive_command']
 	    command = command.replace('%DOWNLOAD_DIR%', download_dir)
             command = command.replace('%ARCHIVE_DIR%', archive_dir)
-            command = command.replace('%NAME%', download_name[0])
+            command = command.replace('%NAME%', download_name)
             print('Archiving complete download "{}"'.format(command))
             exit = os.system(command)
             print('Archiving complete, exit code {}'.format(exit))
@@ -65,15 +57,18 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 if config_map.get('remove_command'):
                     command = config_map['remove_command']
                     command = command.replace('%DOWNLOAD_DIR%', download_dir)
-		    command = command.replace('%NAME%', download_name[0])
+		    command = command.replace('%NAME%', download_name)
                     print('Removing old files "{}"'.format(command))
                     exit = os.system(command)
                     if exit == 0:
                         print('Removing completed successfully')
-                    else:
+                        send_push_notification('Process complete!', 'Archive of {} completed successfully!'.format(download_name))
+ 		    else:
                         print('Error during the removal process!')
+			send_push_notification('Process error!', 'Error while removing: {}'.format(command))
             else:
                 print('Error during archive process, aborting')
+                send_push_notification('Process error!', 'Error while archving: {}'.format(command))
 
 
 def ConfigSectionMap(config, section):
@@ -123,17 +118,25 @@ def parse_config(cfg_file_path='pcc.config'):
 
     if 'Execute' in config.sections():
         execution = ConfigSectionMap(config, 'Execute')
-        command = execution['notifycommand']
-        config_map['notify_command'] = command
-        # print('cfg: Got command to execute: {}'.format(command))
-        config_map['complete_notify_command'] = execution['notifycompletecommand']
         config_map['archive_command'] = execution['archivecommand']
         config_map['remove_command'] = execution['removecommand']
+	config_map['notify'] = execution['notify']
 
     if 'PutioCreds' in config.sections():
         putio_creds = ConfigSectionMap(config, 'PutioCreds')
         oauth = putio_creds['oauthtoken']
         config_map['oauth'] = oauth
+
+
+def send_push_notification(title, message):
+    if config_map.get('notify'):
+        command = config_map['notify']
+        command = command.replace('%TITLE%', title)
+        command = command.replace('%MESSAGE%', message)
+        print('Sending notification: Title: {}. Message: {}'.format(title, message))
+        os.system(command)
+    else:
+	print('Error: notify command not specified in config file')
 
 
 def download_file(id, delete_after_download=True, download_dir="./"):
