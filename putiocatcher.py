@@ -34,9 +34,9 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	    download_dir = config_map['download_dir']
 
         file_id = fields.get('file_id')
-        download_file(file_id[0], download_dir=download_dir)
+        file_name = download_file(file_id[0], download_dir=download_dir)
 
-	send_push_notification('Download complete', 'Successfully downloaded {} to server'.format(download_name))
+	send_push_notification('Download complete', 'Successfully downloaded {} to server'.format(file_name))
 
         if config_map.get('archive_dir'):
             archive_dir = config_map.get('archive_dir')
@@ -45,15 +45,15 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 os.makedirs(archive_dir)
 
 	# If it's a file it's likely compressed, no point redoing it, just move.
-	if os.path.isfile(os.path.join(download_dir, download_name)):
+	if os.path.isfile(os.path.join(download_dir, file_name)):
 	    print('File detected, skipping archive, moving to {}'.format(archive_dir))
-	    if os.path.exists(os.path.join(archive_dir, download_name)):
+	    if os.path.exists(os.path.join(archive_dir, file_name)):
 		print('Error: Existing file in archive directory, aborting and not removing downloaded file!')
-		send_push_notification('File exists error', 'Existing file in archive directory, aborting - {}'.format(download_name))
+		send_push_notification('File exists error', 'Existing file in archive directory, aborting - {}'.format(file_name))
 	    else:
-	        shutil.move(os.path.join(download_dir, download_name), os.path.join(archive_dir, download_name))
-		print('{} moved to {} successfully!'.format(download_name, archive_dir))
-		send_push_notification('Process complete', 'Single file download and archive process complete for {}'.format(download_name))
+	        shutil.move(os.path.join(download_dir, file_name), os.path.join(archive_dir, file_name))
+		print('{} moved to {} successfully!'.format(file_name, archive_dir))
+		send_push_notification('Process complete', 'Single file download and archive process complete for {}'.format(file_name))
 	    return
 	
 	# It must be a directory going forward..
@@ -62,8 +62,8 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             command = config_map['archive_command']
 	    command = command.replace('%DOWNLOAD_DIR%', download_dir)
             command = command.replace('%ARCHIVE_DIR%', archive_dir)
-            command = command.replace('%NAME%', download_name)
-            print('Archiving complete download "{}"'.format(command))
+            command = command.replace('%NAME%', file_name)
+            print('Archiving complete download {}'.format(command))
             exit = os.system(command)
             print('Archiving complete, exit code {}'.format(exit))
 
@@ -71,12 +71,12 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 if config_map.get('remove_command'):
                     command = config_map['remove_command']
                     command = command.replace('%DOWNLOAD_DIR%', download_dir)
-		    command = command.replace('%NAME%', download_name)
+		    command = command.replace('%NAME%', file_name)
                     print('Removing old files "{}"'.format(command))
                     exit = os.system(command)
                     if exit == 0:
                         print('Removing completed successfully')
-                        send_push_notification('Process complete!', 'Archive of {} completed successfully!'.format(download_name))
+                        send_push_notification('Process complete!', 'Archive of {} completed successfully!'.format(file_name))
  		    else:
                         print('Error during the removal process!')
 			send_push_notification('Process error!', 'Error while removing: {}'.format(command))
@@ -159,6 +159,7 @@ def download_file(id, delete_after_download=True, download_dir="./"):
     print('Downloading file: {}'.format(str(file)))
     file.download(dest=download_dir, delete_after_download=delete_after_download)
     print('Download complete!')
+    return file.name
 
 
 def write_pid_file():
