@@ -28,7 +28,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         download_name = fields.get('name')[0]
 
-	send_push_notification('Put.io notification', 'Download complete callback received for {}'.format(download_name))
+	#send_push_notification('Put.io notification', 'Download complete callback received for {}'.format(download_name))
 
 	if config_map.get('download_dir'):
 	    download_dir = config_map['download_dir']
@@ -36,7 +36,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         file_id = fields.get('file_id')
         file_name = download_file(file_id[0], download_dir=download_dir)
 
-	send_push_notification('Download complete', 'Successfully downloaded {} to server'.format(file_name))
+	#send_push_notification('Download complete', 'Successfully downloaded {} to server'.format(file_name))
 
         if config_map.get('archive_dir'):
             archive_dir = config_map.get('archive_dir')
