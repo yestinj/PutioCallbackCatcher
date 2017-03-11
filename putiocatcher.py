@@ -14,7 +14,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST(self):
         request_path = self.path
         print("\n----- Request Start ----->\n")
-        #print(request_path)
+        # print(request_path)
         request_headers = self.headers
         content_length = request_headers.getheaders('content-length')
         length = int(content_length[0]) if content_length else 0
@@ -28,15 +28,15 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         download_name = fields.get('name')[0]
 
-	#send_push_notification('Put.io notification', 'Download complete callback received for {}'.format(download_name))
+        # send_push_notification('Put.io notification', 'Download complete callback received for {}'.format(download_name))
 
-	if config_map.get('download_dir'):
-	    download_dir = config_map['download_dir']
+        if config_map.get('download_dir'):
+            download_dir = config_map['download_dir']
 
         file_id = fields.get('file_id')
         file_name = download_file(file_id[0], download_dir=download_dir)
 
-	#send_push_notification('Download complete', 'Successfully downloaded {} to server'.format(file_name))
+        # send_push_notification('Download complete', 'Successfully downloaded {} to server'.format(file_name))
 
         if config_map.get('archive_dir'):
             archive_dir = config_map.get('archive_dir')
@@ -44,23 +44,25 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 print('Creating directory for achives - {}'.format(archive_dir))
                 os.makedirs(archive_dir)
 
-	# If it's a file it's likely compressed, no point redoing it, just move.
-	if os.path.isfile(os.path.join(download_dir, file_name)):
-	    print('File detected, skipping archive, moving to {}'.format(archive_dir))
-	    if os.path.exists(os.path.join(archive_dir, file_name)):
-		print('Error: Existing file in archive directory, aborting and not removing downloaded file!')
-		send_push_notification('File exists error', 'Existing file in archive directory, aborting - {}'.format(file_name))
-	    else:
-	        shutil.move(os.path.join(download_dir, file_name), os.path.join(archive_dir, file_name))
-		print('{} moved to {} successfully!'.format(file_name, archive_dir))
-		send_push_notification('Process complete', 'Single file download and archive process complete for {}'.format(file_name))
-	    return
-	
-	# It must be a directory going forward..
+        # If it's a file it's likely compressed, no point redoing it, just move.
+        if os.path.isfile(os.path.join(download_dir, file_name)):
+            print('File detected, skipping archive, moving to {}'.format(archive_dir))
+            if os.path.exists(os.path.join(archive_dir, file_name)):
+                print('Error: Existing file in archive directory, aborting and not removing downloaded file!')
+                send_push_notification('File exists error',
+                                       'Existing file in archive directory, aborting - {}'.format(file_name))
+            else:
+                shutil.move(os.path.join(download_dir, file_name), os.path.join(archive_dir, file_name))
+                print('{} moved to {} successfully!'.format(file_name, archive_dir))
+                send_push_notification('Process complete',
+                                       'Single file download and archive process complete for {}'.format(file_name))
+            return
+
+        # It must be a directory going forward..
         exit = 0
         if config_map.get('archive_command'):
             command = config_map['archive_command']
-	    command = command.replace('%DOWNLOAD_DIR%', download_dir)
+            command = command.replace('%DOWNLOAD_DIR%', download_dir)
             command = command.replace('%ARCHIVE_DIR%', archive_dir)
             command = command.replace('%NAME%', file_name)
             print('Archiving complete download {}'.format(command))
@@ -71,15 +73,16 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 if config_map.get('remove_command'):
                     command = config_map['remove_command']
                     command = command.replace('%DOWNLOAD_DIR%', download_dir)
-		    command = command.replace('%NAME%', file_name)
+                    command = command.replace('%NAME%', file_name)
                     print('Removing old files "{}"'.format(command))
                     exit = os.system(command)
                     if exit == 0:
                         print('Removing completed successfully')
-                        send_push_notification('Process complete!', 'Archive of {} completed successfully!'.format(file_name))
- 		    else:
+                        send_push_notification('Process complete!',
+                                               'Archive of {} completed successfully!'.format(file_name))
+                    else:
                         print('Error during the removal process!')
-			send_push_notification('Process error!', 'Error while removing: {}'.format(command))
+                        send_push_notification('Process error!', 'Error while removing: {}'.format(command))
             else:
                 print('Error during archive process, aborting')
                 send_push_notification('Process error!', 'Error while archving: {}'.format(command))
@@ -134,7 +137,7 @@ def parse_config(cfg_file_path='pcc.config'):
         execution = ConfigSectionMap(config, 'Execute')
         config_map['archive_command'] = execution['archivecommand']
         config_map['remove_command'] = execution['removecommand']
-	config_map['notify'] = execution['notify']
+        config_map['notify'] = execution['notify']
 
     if 'PutioCreds' in config.sections():
         putio_creds = ConfigSectionMap(config, 'PutioCreds')
@@ -150,7 +153,7 @@ def send_push_notification(title, message):
         print('Sending notification: Title: {}. Message: {}'.format(title, message))
         os.system(command)
     else:
-	print('Error: notify command not specified in config file')
+        print('Error: notify command not specified in config file')
 
 
 def download_file(id, delete_after_download=True, download_dir="./"):
@@ -174,7 +177,7 @@ if __name__ == '__main__':
 
     print('Putio Callback Catcher starting up...')
     pid = write_pid_file()
-    print('PID: {}'.format(pid))	    
+    print('PID: {}'.format(pid))
     parse_config()
 
     server_class = BaseHTTPServer.HTTPServer
