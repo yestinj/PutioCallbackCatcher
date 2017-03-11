@@ -182,10 +182,10 @@ if __name__ == '__main__':
 
     server_class = BaseHTTPServer.HTTPServer
     httpd = server_class((config_map['host'], config_map['port']), MyHandler)
-    print time.asctime(), "Server Starts - %s:%s" % (config_map['host'], config_map['port'])
+    print("{}: Server Starts - {}:{}".format(time.asctime(), config_map['host'], config_map['port']))
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
     httpd.server_close()
-    print time.asctime(), "Server Stops - %s:%s" % (config_map['host'], config_map['port'])
+    print("{}: Server Stops - {}:{}".format(time.asctime(), config_map['host'], config_map['port']))
