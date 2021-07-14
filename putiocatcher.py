@@ -1,7 +1,7 @@
 import time
-import BaseHTTPServer
-from urlparse import urlparse, parse_qs
-import ConfigParser
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import urllib.parse as parse
+import configparser
 import os
 import putiopy
 import shutil
@@ -9,7 +9,7 @@ import shutil
 config_map = dict()
 
 
-class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class CallbackCatcher(BaseHTTPRequestHandler):
     # We're only concerned about catching POSTs from put.io.
     def do_POST(self):
         request_path = self.path
@@ -19,7 +19,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         content_length = request_headers.getheaders('content-length')
         length = int(content_length[0]) if content_length else 0
         field_data = self.rfile.read(length)
-        fields = parse_qs(field_data)
+        fields = parse(field_data)
         # print(request_headers)
         # print(field_data)
         print(repr(fields))
@@ -103,7 +103,7 @@ def ConfigSectionMap(config, section):
 
 
 def parse_config(cfg_file_path='pcc.config'):
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     config.read(cfg_file_path)
     if 'WebServer' in config.sections():
         ws_options = ConfigSectionMap(config, "WebServer")
@@ -180,8 +180,7 @@ if __name__ == '__main__':
     print('PID: {}'.format(pid))
     parse_config()
 
-    server_class = BaseHTTPServer.HTTPServer
-    httpd = server_class((config_map['host'], config_map['port']), MyHandler)
+    httpd = HTTPServer((config_map['host'], config_map['port']), CallbackCatcher)
     print("{}: Server Starts - {}:{}".format(time.asctime(), config_map['host'], config_map['port']))
     try:
         httpd.serve_forever()
